@@ -29,6 +29,7 @@ most = 100000
 disk_space = 70000000
 needed_space = 30000000
 
+
 def parse(i):
     global path
 
@@ -50,7 +51,6 @@ def parse(i):
         if i[0].isnumeric():
             folders[path]["bytes"] += int(i[0])
 
-
 def count():
     for k1 in folders.keys():
         for k2 in folders.keys():
@@ -63,7 +63,6 @@ def count():
                 if k2.startswith(k3):
                     folders[k1]["bytes"] += folders[k2]["bytes"]
 
-
 def solve1():
     result = 0
     for key in folders.keys():
@@ -72,16 +71,17 @@ def solve1():
             result += test
     print(result)
 
+
 def solve2():
     used_space = disk_space - folders['/']["bytes"]
     missing_space = needed_space - used_space
-    print(used_space, missing_space)
     possible_dir = []
     for i in folders:
         if folders[i]["bytes"] >= missing_space:
             possible_dir.append(folders[i]["bytes"])
     result = sorted(possible_dir)[::-1].pop()
     print(result)
+
 
 def part1(input):
     global folders, path
@@ -112,9 +112,9 @@ def part2(input):
 
 if __name__ == '__main__':
     input = sample.split('\n')
-    # part1(input)
+    part1(input)
     part2(input)
     sample = open("output").read()
     input = sample.split('\n')
-    # part1(input)
+    part1(input)
     part2(input)
