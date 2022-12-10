@@ -1,5 +1,4 @@
 HEAD = "head"
-BODY = "body"
 TAIL = "tail"
 START = "x0y0"
 size = 0
@@ -12,9 +11,23 @@ tiles = {
 world = {}
 rope = {}
 visited = []
+moves = {
+    "orth": {
+        "D": (0, 1),
+        "U": (0, -1),
+        "R": (1, 0),
+        "L": (-1, 0)
+    },
+    "diag": {
+        "DR": (1, 1),
+        "UR": (1, -1),
+        "DL": (-1, 1),
+        "UL": (-1, -1)
+    }
+}
 
 
-def reset(s=0):
+def reset(s = 2):
     global world, rope, visited, size
     visited = [START]
     world = {
@@ -25,10 +38,10 @@ def reset(s=0):
         START: tiles[HEAD]
     }
     rope = {
-        HEAD: {'x': 0, 'y': 0, 'prev_x': 0, 'prev_y': 0},
-        BODY: [START],
-        TAIL: {'x': 0, 'y': 0}
+        HEAD: {'x': 0, 'y': 0}
     }
+    for i in range(1, s):
+        rope["tail" + str(i)] = {'x': 0, 'y': 0}
     size = s
 
 
@@ -44,76 +57,87 @@ def update_world():
     elif y > world["end_y"]:
         world["end_y"] += 1
     world['x' + str(x) + 'y' + str(y)] = tiles[HEAD]
-    world['x' + str(rope[TAIL]["x"]) + 'y' + str(rope[TAIL]["y"])] = tiles[TAIL]
+    for i in range(1, size):
+        tile = str(i)
+        if size == 0:
+            tile = tiles[TAIL]
+        world['x' + str(rope["tail" + str(i)]["x"]) + 'y' + str(rope["tail" + str(i)]["y"])] = tile
 
+def is_adjacent(t, h):
+    return max(abs(t[0] - h[0]), abs(t[1] - h[1])) == 1
 
-def update_body(check):
-    if len(rope[BODY]) < size - 1:
-        if check in rope[BODY]:
-            rope[BODY].append(check)
-    else:
-        if check != rope[BODY][-1]:
-            rope[BODY].pop(0)
-            rope[BODY].append(check)
-    display_body()
+def is_equal(t, h):
+    return t[0] == h[0] and t[1] == h[1]
 
-    print(rope[BODY])
+def is_linear(t, h):
+    return t[0] == h[0] or t[1] == h[1]
 
-def update_tail():
-    hx = rope[HEAD]['x']
-    hy = rope[HEAD]['y']
-    tx = rope[TAIL]['x']
-    ty = rope[TAIL]['y']
-    if tx + 2 == hx and ty == hy:
-        rope[TAIL]['x'] += 1
-    elif tx - 2 == hx and ty == hy:
-        rope[TAIL]['x'] -= 1
-    elif ty + 2 == hy and tx == hx:
-        rope[TAIL]['y'] += 1
-    elif ty - 2 == hy and tx == hx:
-        rope[TAIL]['y'] -= 1
+def update_tail(direction, first, second):
+    hx = rope[first]['x']
+    hy = rope[first]['y']
+    tx = rope[second]['x']
+    ty = rope[second]['y']
 
-    elif (tx + 1 == hx and ty - 2 == hy) or (tx + 2 == hx and ty - 1 == hy):
-        rope[TAIL]['x'] += 1
-        rope[TAIL]['y'] -= 1
-    elif (tx + 1 == hx and ty + 2 == hy) or (tx + 2 == hx and ty + 1 == hy):
-        rope[TAIL]['x'] += 1
-        rope[TAIL]['y'] += 1
-    elif (tx - 1 == hx and ty - 2 == hy) or (tx - 2 == hx and ty - 1 == hy):
-        rope[TAIL]['x'] -= 1
-        rope[TAIL]['y'] -= 1
-    elif (tx - 1 == hx and ty + 2 == hy) or (tx - 2 == hx and ty + 1 == hy):
-        rope[TAIL]['x'] -= 1
-        rope[TAIL]['y'] += 1
+    if not is_equal((tx, ty), (hx, hy)) and not is_adjacent((tx, ty), (hx, hy)):
+        if is_linear((tx, ty), (hx, hy)) and len(direction) == 1:
+            m = moves["orth"][direction]
+        elif is_linear((tx, ty), (hx, hy)):
+                if tx == hx:
+                    m = moves["orth"][direction[0]]
+                    direction = direction[0]
+                elif ty == hy:
+                    m = moves["orth"][direction[1]]
+                    direction = direction[1]
+        else:
+            if direction[0] in ['D', 'U']:
+                if tx < hx:
+                    m = moves["diag"][direction[0] + 'R']
+                    direction = direction[0] + 'R'
+                else:
+                    m = moves["diag"][direction[0] + 'L']
+                    direction = direction[0] + 'L'
+            elif direction[0] in ['R', 'L']:
+                d = direction[0]
+                if ty < hy or (len(direction) > 1 and direction[1] == 'D'):
+                    m = moves["diag"]['D' + direction[0]]
+                    direction = 'D' + direction[0]
+                else:
+                    m = moves["diag"]['U' + d]
+                    direction = 'U' + direction[0]
+            else:
+                m = (0, 0)
+        rope[second]['x'] += m[0]
+        rope[second]['y'] += m[1]
 
-    check = 'x' + str(rope[TAIL]['x']) + 'y' + str(rope[TAIL]['y'])
-    if size == 0:
+    if size <= 2:
+        check = 'x' + str(rope[second]['x']) + 'y' + str(rope[second]['y'])
         if check not in visited:
             visited.append(check)
     else:
-        update_body(check)
+        last = "tail" + str(size - 1)
+        if second == last:
+            check = 'x' + str(rope[last]['x']) + 'y' + str(rope[last]['y'])
+            if check not in visited:
+                visited.append(check)
+    return direction
 
 def move_rope(input):
-    direction = input[0]
     nb_moves = int(input[1])
 
     for move in range(nb_moves):
-        rope[HEAD]["prev_x"] = rope[HEAD]["x"]
-        rope[HEAD]["prev_y"] = rope[HEAD]["y"]
-        if direction == 'L':
-            rope[HEAD]["x"] -= 1
-        elif direction == 'R':
-            rope[HEAD]["x"] += 1
-        elif direction == 'U':
-            rope[HEAD]["y"] -= 1
-        elif direction == 'D':
-            rope[HEAD]["y"] += 1
-        update_tail()
+        direction = input[0]
+        m = moves["orth"][direction]
+        rope[HEAD]['x'] += m[0]
+        rope[HEAD]['y'] += m[1]
+        first = HEAD
+        for s in range(1, size):
+            check = "tail" + str(s)
+            direction = update_tail(direction, first, check)
+            first = check
         update_world()
 
 
 def display_visited():
-    # print("World for position head at ", rope[HEAD], " and tail at ", rope[TAIL])
     for y in range(world['start_y'], world['end_y'] + 1):
         for x in range(world['start_x'], world['end_x'] + 1):
             tile = 'x' + str(x) + 'y' + str(y)
@@ -123,11 +147,26 @@ def display_visited():
                 print(tiles['unknown'], end='')
         print()
 
-
-def display_body():
-    print("body")
-    for i in range(len(rope[BODY])):
-        print(size - i, rope[BODY][i])
+def display_world():
+    for y in range(world['start_y'], world['end_y'] + 2):
+        for x in range(world['start_x'], world['end_x'] + 2):
+            empty = True
+            if rope[HEAD]['x'] == x and rope[HEAD]['y'] == y:
+                empty = False
+                print(tiles[HEAD], end='')
+            else:
+                for s in range(1, size):
+                    if size <= 2:
+                        tile = tiles[TAIL]
+                    else:
+                        tile = str(s)
+                    if rope['tail' + str(s)]['x'] == x and rope['tail' + str(s)]['y'] == y:
+                        empty = False
+                        print(tile, end='')
+                        break
+            if empty:
+                print('.', end='')
+        print()
 
 def part1(input):
     global world, rope
@@ -137,6 +176,7 @@ def part1(input):
     for i in input:
         move_rope(i.split())
     display_visited()
+    display_world()
     print(len(visited))
 
 
@@ -146,20 +186,21 @@ def part2(input):
     reset(10)
     for i in input:
         move_rope(i.split())
-    display_body()
+    display_visited()
+    display_world()
     print(len(visited))
 
 
 if __name__ == '__main__':
     sample = open("sample").read()
     input = sample.split('\n')
-    # part1(input)
+    part1(input)
     part2(input)
     sample = open("sample2").read()
     input = sample.split('\n')
-    # part1(input)
-    # part2(input)
+    part1(input)
+    part2(input)
     sample = open("input").read()
     input = sample.split('\n')
-    # part1(input)
-    # part2(input)
+    part1(input)
+    part2(input)
