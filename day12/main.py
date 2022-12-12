@@ -1,83 +1,89 @@
-steps = 0
-map = {}
-journeys = []
+# https://www.youtube.com/watch?v=oDqjPvD54Ss
+# https://www.youtube.com/watch?v=KiCBXu4P-2Y
+
+_map = {}
 checks = {
     "down": (0, 1),
     "right": (1, 0),
     "left": (-1, 0),
     "top": (0, -1)
 }
-tests = 1
+_start = ''
+_exit = ''
+adjacency_list = {}
+_height = 0
+_width = 0
 
 def reset():
-    global steps, map, tests, journey
-    steps = 0
-    map = {}
-    journeys = []
-    tests = 1
-
-def solve():
-    pass
+    global _map, adjacency_list, _start, _exit, _height, _width
+    _map = {}
+    _start = ''
+    _exit = ''
+    adjacency_list = []
+    _height = 0
+    _width = 0
 
 def display_map():
-    print(map)
-    # for line in map:
-    #     for tile in line:
-    #         print(tile, end=',')
-    #     print()
+    print(_map)
+
+    print(_width, _height)
+    for y in range(_height):
+        for x in range(_width):
+            tile = "x" + str(x) + ":" + "y" + str(y)
+            print(_map[tile], end=', ')
+        print()
+
+    # for line in _map:
+        # print(line)
+        # for tile in line:
+        #     print(tile, end=',')
+        # for i in range(_width):
+        # print(_map[line], end='')
+
+        # print()
 
 
-def get_next_tile(tile):
-    value = map[tile]
-    tx = int(tile.split(":")[0][1:])
-    ty = int(tile.split(":")[1][1:])
-    print(tx, ty, value)
-    next_tile = ''
-    for c in checks:
-        cx = tx + checks[c][0]
-        cy = ty + checks[c][1]
-        if 0 <= cx < map["width"] and 0 <= cy <= map["height"]:
-            next_tile = "x" + str(cx) + ":" + "y" + str(cy)
-            if map[next_tile] <= value + 1:
-                break
-    return next_tile
-
-def solve():
-    global tests
-    tile = map['start']
-    exit_reached = False
-    idx = 0
-    while tests:
-        journeys.append([tile])
-        while not exit_reached:
-            tile = get_next_tile(tile)
-            journeys[idx].append(tile)
-            if map[tile] == 'E':
-                exit_reached = True
-        idx += 1
-        break
-
-    print(journeys)
+def build_adjacency_list():
+    for y in range(_height):
+        for x in range(_width):
+            tile = "x" + str(x) + ":" + "y" + str(y)
+            adjacency_list[tile] = []
+            for c in checks:
+                cx = x + checks[c][0]
+                cy = y + checks[c][1]
+                if 0 <= cx < _width and 0 <= cy < _height:
+                    adjacent_tile = "x" + str(cx) + ":" + "y" + str(cy)
+                    if adjacent_tile == _exit:
+                        adjacency_list[tile].append(adjacent_tile)
+                    elif _map[tile] + 1 >= _map[adjacent_tile]:
+                        adjacency_list[tile].append(adjacent_tile)
+    print(adjacency_list)
 
 def build_map():
+    global _start, _exit, _height, _width
     for y, line in enumerate(input):
         for x, tile in enumerate(line):
             coord = 'x' + str(x) + ":" + 'y' + str(y)
             if tile not in ['S', 'E']:
-                map[coord] = ord(tile) - ord('a') + 1
+                _map[coord] = ord(tile) - ord('a') + 1
             else:
-                map[coord] = tile
                 if tile == 'S':
-                    map['start'] = coord
+                    _start = coord
+                    _map[coord] = ord('a') - ord('a') + 1
                 else:
-                    map['exit'] = coord
-    map['height'] = len(input)
-    map['width'] = len(input[0])
+                    _exit = coord
+                    _map[coord] = ord('z') - ord('a') + 1
+    _height = len(input)
+    _width = len(input[0])
 
 def part1(input):
     print("part 1:")
+
+    for i in input:
+        print(i)
     build_map()
-    solve()
+    build_adjacency_list()
+    # display_adjacency_matrix()
     display_map()
 
 def part2(input):
